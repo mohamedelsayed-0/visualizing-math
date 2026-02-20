@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mathviz"
+version = "0.1.0"
+description = "Cinematic graph & point cloud visualization toolkit"
+requires-python = ">=3.9"
+dependencies = [
+    "networkx>=3.0",
+    "pydantic>=2.0",
+    "click>=8.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+fa2 = ["fa2>=0.3"]
+umap = ["umap-learn>=0.5"]
+manim = ["manim>=0.18"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+viz = "mathviz.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]

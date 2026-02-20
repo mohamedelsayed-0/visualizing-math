@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "a",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#ff0000",
+      "size": 1.5,
+      "glow": 1.0,
+      "group": "g1",
+      "reveal_order": 0
+    },
+    {
+      "id": "b",
+      "position": [
+        10.0,
+        0.0,
+        0.0
+      ],
+      "color": "#00ff00",
+      "size": 1.0,
+      "glow": 1.0,
+      "group": "g2",
+      "reveal_order": 1
+    }
+  ],
+  "edges": [
+    {
+      "source": "a",
+      "target": "b",
+      "weight": 2.0,
+      "color": "#333333",
+      "visible": true
+    }
+  ],
+  "camera_path": [
+    {
+      "time": 0.0,
+      "position": [
+        0.0,
+        0.0,
+        100.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "fov": 60.0,
+      "easing": "ease-in-out"
+    }
+  ],
+  "animation_timeline": [
+    {
+      "time": 0.5,
+      "type": "reveal_group",
+      "params": {
+        "group": "g1",
+        "duration": 1.0
+      }
+    }
+  ],
+  "render_settings": {
+    "width": 1280,
+    "height": 720,
+    "fps": 24,
+    "duration": 4.0,
+    "background": "#01010a",
+    "bloom_strength": 1.5,
+    "bloom_radius": 0.4,
+    "bloom_threshold": 0.2,
+    "fog_near": 50.0,
+    "fog_far": 500.0,
+    "tone_mapping": "ACESFilmic",
+    "dof_enabled": false,
+    "dof_focus_distance": 100.0,
+    "dof_aperture": 0.025
+  }
+}

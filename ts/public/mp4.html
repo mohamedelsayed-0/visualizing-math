@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mathviz mp4 player</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      #player {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="player" preload="auto" playsinline></video>
+    <script>
+      const video = document.getElementById("player");
+      const params = new URLSearchParams(window.location.search);
+      const src = params.get("src") || "/media/klotski_paths.mp4";
+      video.src = src;
+
+      // Space toggles play/pause without showing UI controls.
+      window.addEventListener("keydown", (event) => {
+        if (event.code !== "Space") return;
+        event.preventDefault();
+        if (video.paused) {
+          void video.play();
+        } else {
+          video.pause();
+        }
+      });
+    </script>
+  </body>
+</html>
