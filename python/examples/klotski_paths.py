@@ -292,9 +292,9 @@ def compute_positions(
             lane_band = max(-2, min(2, lane // 45))
             layout_groups[s] = f"explore_{gap_band}_{lane_band}"
 
-        x *= 2.45
-        y *= 2.45
-        z *= 1.90
+        x *= 3.35
+        y *= 3.35
+        z *= 2.30
 
         positions[s] = (float(x), float(y), float(z))
 
@@ -302,15 +302,15 @@ def compute_positions(
         positions,
         layout_groups,
         shape="infinity",
-        spacing=22500.0,
-        compactness=0.50,
-        z_wave=2200.0,
+        spacing=52000.0,
+        compactness=0.34,
+        z_wave=3900.0,
         order_by="size",
     )
 
     for s in dense_nopath:
         px, py, pz = shaped[s]
-        shaped[s] = (px - 6200.0, py * 0.92, pz)
+        shaped[s] = (px - 12000.0, py * 0.87, pz)
 
     all_points = np.array(list(shaped.values()), dtype=np.float64)
     center_x = float(all_points[:, 0].mean())
@@ -322,7 +322,7 @@ def compute_positions(
         px, py, pz = shaped[s]
         dx = px - center_x
         dy = py - center_y
-        stretch = 1.20
+        stretch = 1.68
         shaped[s] = (center_x + dx * stretch, center_y + dy * stretch, pz)
 
     return shaped
@@ -397,19 +397,19 @@ def build_scene() -> object:
     for s in graph.nodes:
         if s in solution_states:
             color = "#1aff66"
-            size = 2.2
-            glow = 4.30
+            size = 3.25
+            glow = 5.60
             group = "solution"
             reveal_order = 2
         elif s in dense_left:
-            color = "#ff2e2e"
-            size = 1.15
-            glow = 0.25
+            color = "#ffffff"
+            size = 1.52
+            glow = 0.12
             group = "dense_left"
             reveal_order = 1
         else:
-            color = "#8bb7ff"
-            size = 0.88
+            color = "#ffffff"
+            size = 1.34
             glow = 0.08
             group = "exploration"
             reveal_order = 0
@@ -424,7 +424,7 @@ def build_scene() -> object:
             reveal_order=reveal_order,
         )
 
-    duration = 10.0
+    duration = 16.0
     solution_ids = [id_map[s] for s in solution_states]
     pulse_interval = 1.5
     pulse_duration = 1.5
@@ -436,16 +436,14 @@ def build_scene() -> object:
                 node_id,
                 time=t,
                 duration=pulse_duration,
-                amplitude=1.15,
+                amplitude=1.45,
             )
 
     for u, v in graph.edges:
         if u in solution_states and v in solution_states:
             edge_color = "#22cc66"
-        elif u in dense_left and v in dense_left:
-            edge_color = "#ff4d4d"
         else:
-            edge_color = "#365a88"
+            edge_color = "#d7deef"
 
         builder.add_edge(id_map[u], id_map[v], color=edge_color, visible=True)
 
@@ -457,17 +455,17 @@ def build_scene() -> object:
         global_target=global_center,
         duration=duration,
         start_time=0.0,
-        overview_distance_scale=2.25,
-        focus_distance_scale=0.26,
-        sweep_distance_scale=0.46,
-        fit_padding=1.20,
-        overview_hold_ratio=0.16,
-        focus_ratio=0.50,
-        sweep_ratio=0.76,
-        overview_fov=63.0,
-        focus_fov=30.0,
-        sweep_fov=38.0,
-        end_fov=52.0,
+        overview_distance_scale=2.65,
+        focus_distance_scale=0.38,
+        sweep_distance_scale=0.62,
+        fit_padding=1.28,
+        overview_hold_ratio=0.24,
+        focus_ratio=0.62,
+        sweep_ratio=0.86,
+        overview_fov=66.0,
+        focus_fov=33.0,
+        sweep_fov=43.0,
+        end_fov=57.0,
     )
 
     builder.add_cluster_reveal(
@@ -483,11 +481,11 @@ def build_scene() -> object:
         fps=24,
         duration=duration,
         background="#02040b",
-        bloom_strength=1.75,
-        bloom_radius=0.24,
-        bloom_threshold=0.90,
-        fog_near=8000,
-        fog_far=90000,
+        bloom_strength=1.35,
+        bloom_radius=0.22,
+        bloom_threshold=0.94,
+        fog_near=16000,
+        fog_far=170000,
         dof_enabled=False,
     )
 

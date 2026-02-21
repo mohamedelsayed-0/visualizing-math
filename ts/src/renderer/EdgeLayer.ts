@@ -95,7 +95,7 @@ export class EdgeLayer {
       colors[i * 3 + 1] = tmpColor.g;
       colors[i * 3 + 2] = tmpColor.b;
 
-      opacities[i] = 0.3; // default subtle opacity
+      opacities[i] = 0.34; // balanced opacity to avoid washed-out white haze
     }
 
     this._startAttr = new THREE.InstancedBufferAttribute(starts, 3);
