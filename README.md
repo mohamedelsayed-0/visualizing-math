@@ -79,6 +79,10 @@ python -m mathviz.cli render scene.json -o output --format mp4
 - `python/examples/galaxy_flythrough.py`
 - `python/examples/cluster_reveal.py`
 - `python/examples/embedding_explore.py`
+- `python/examples/prime_spiral.py` (lightweight)
+- `python/examples/small_world_shells.py` (lightweight)
+- `python/examples/lissajous_ribbons.py` (lightweight)
+- `python/examples/klotski_paths.py` (large state-space)
 
 Each example exposes `build_scene()` and can be compiled with `viz compile`.
 
