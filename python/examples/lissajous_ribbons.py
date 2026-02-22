@@ -1,7 +1,6 @@
-"""Lightweight Demo: Lissajous Ribbons
+"""Example: Lissajous Ribbons
 
-Draws several Lissajous trajectories as glowing ribbons in 3D.
-No heavy graph algorithms; mostly direct procedural geometry.
+Draws multiple Lissajous trajectories as 3D ribbons.
 
 Usage:
     viz compile python/examples/lissajous_ribbons.py -o lissajous_scene.json
@@ -13,17 +12,19 @@ from __future__ import annotations
 import math
 
 from mathviz.scene.builder import SceneBuilder
+from mathviz.scene.helpers import add_overview_then_zoom
 
 
 def build_scene(
     *,
-    streams: int = 5,
-    points_per_stream: int = 320,
+    streams: int = 6,
+    points_per_stream: int = 260,
 ):
     builder = SceneBuilder()
-    duration = 10.0
+    duration = 13.5
+    positions: list[tuple[float, float, float]] = []
 
-    palettes = ["#67d5ff", "#8bff9f", "#ffe07a", "#ff9d75", "#cf9eff", "#7dffdf"]
+    palettes = ["#54c7ff", "#7effb1", "#ffe177", "#ff9c7c", "#c3a0ff", "#6ff0e2"]
     for s in range(streams):
         group = f"stream_{s}"
         color = palettes[s % len(palettes)]
@@ -35,17 +36,20 @@ def build_scene(
 
         for i in range(points_per_stream):
             t = (i / max(1, points_per_stream - 1)) * math.tau
-            x = math.sin(a * t + phase) * 185.0
-            y = math.sin(b * t) * 125.0
-            z = math.cos(c * t + phase * 0.7) * 105.0 + (s - streams / 2.0) * 18.0
+            x = math.sin(a * t + phase) * 220.0
+            y = math.sin(b * t) * 150.0
+            z = math.cos(c * t + phase * 0.7) * 120.0 + (s - streams / 2.0) * 26.0
+            pulse = 0.5 + 0.5 * math.sin(t * 4.0 + phase)
+            sparkle = 0.5 + 0.5 * math.cos(t * 3.0 - phase)
             pos = (x, y, z)
+            positions.append(pos)
             node_id = f"{group}_{i}"
             builder.add_node(
                 id=node_id,
                 position=pos,
                 color=color,
-                size=0.86,
-                glow=0.26,
+                size=1.10 + 0.30 * pulse,
+                glow=0.30 + 0.30 * sparkle,
                 group=group,
                 reveal_order=s,
             )
@@ -54,7 +58,7 @@ def build_scene(
                 builder.add_edge(
                     source=previous_id,
                     target=node_id,
-                    color="#c9d5ef",
+                    color="#91a5d3",
                     visible=True,
                 )
             previous_id = node_id
@@ -62,21 +66,23 @@ def build_scene(
     for s in range(streams):
         builder.add_reveal(f"stream_{s}", time=0.2 + s * 0.7, duration=0.9)
 
-    # Smooth orbit + slight elevation change.
-    orbit_steps = 26
-    for i in range(orbit_steps + 1):
-        p = i / orbit_steps
-        ang = p * math.tau
-        x = math.cos(ang) * 430.0
-        z = math.sin(ang) * 430.0
-        y = 130.0 + math.sin(ang * 1.5) * 42.0
-        builder.add_camera_keyframe(
-            p * duration,
-            (x, y, z),
-            (0.0, 0.0, 0.0),
-            fov=56.0,
-            easing="linear",
-        )
+    add_overview_then_zoom(
+        builder,
+        positions,
+        focus_target=(0.0, 0.0, 0.0),
+        duration=duration,
+        overview_distance_scale=2.8,
+        focus_distance_scale=0.58,
+        sweep_distance_scale=0.94,
+        fit_padding=1.26,
+        overview_hold_ratio=0.24,
+        focus_ratio=0.60,
+        sweep_ratio=0.86,
+        overview_fov=64.0,
+        focus_fov=36.0,
+        sweep_fov=46.0,
+        end_fov=56.0,
+    )
 
     builder.set_render(
         width=1920,
@@ -84,11 +90,11 @@ def build_scene(
         fps=24,
         duration=duration,
         background="#070b16",
-        bloom_strength=1.2,
-        bloom_radius=0.24,
-        bloom_threshold=0.80,
+        bloom_strength=1.05,
+        bloom_radius=0.20,
+        bloom_threshold=0.88,
         fog_near=160,
-        fog_far=1300,
+        fog_far=1800,
         dof_enabled=False,
     )
 
