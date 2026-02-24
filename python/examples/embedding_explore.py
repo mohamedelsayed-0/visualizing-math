@@ -10,10 +10,10 @@ Usage:
 from __future__ import annotations
 
 import networkx as nx
-import numpy as np
 
 from mathviz.scene.builder import SceneBuilder
 from mathviz.layout.fruchterman import layout_fruchterman_reingold
+from mathviz.scene.helpers import add_overview_then_zoom
 
 
 def build_scene(
@@ -56,34 +56,46 @@ def build_scene(
         cat_idx = int(G.nodes[node]["category"].split("_")[1])
         color_map[node] = palette[cat_idx % len(palette)]
 
+    node_list = list(G.nodes())
+    pos_by_node = {
+        node_list[i]: (
+            float(positions[i, 0]),
+            float(positions[i, 1]),
+            float(positions[i, 2]),
+        )
+        for i in range(len(node_list))
+    }
+
     # Build scene
     builder = SceneBuilder()
     builder.from_graph(
         G,
-        positions,
+        pos_by_node,
         color_map=color_map,
         group_attr="category",
-        size=0.8,
+        size=0.86,
+        cluster_layout=False,
     )
 
-    # Camera orbit
-    duration = 12.0
-    steps = 30
-    radius = 200
-    for i in range(steps + 1):
-        angle = (i / steps) * np.pi * 2
-        t = (i / steps) * duration
-        builder.add_camera_keyframe(
-            t,
-            (
-                float(np.cos(angle) * radius),
-                float(radius * 0.3),
-                float(np.sin(angle) * radius),
-            ),
-            (0.0, 0.0, 0.0),
-            fov=55,
-            easing="linear",
-        )
+    duration = 12.5
+    add_overview_then_zoom(
+        builder,
+        pos_by_node.values(),
+        focus_target=(0.0, 0.0, 0.0),
+        global_target=(0.0, 0.0, 0.0),
+        duration=duration,
+        overview_distance_scale=3.0,
+        focus_distance_scale=1.02,
+        sweep_distance_scale=1.24,
+        fit_padding=1.40,
+        overview_hold_ratio=0.26,
+        focus_ratio=0.60,
+        sweep_ratio=0.86,
+        overview_fov=68.0,
+        focus_fov=60.0,
+        sweep_fov=64.0,
+        end_fov=68.0,
+    )
 
     # Reveal categories sequentially
     for i in range(blocks):
@@ -95,14 +107,12 @@ def build_scene(
         fps=30,
         duration=duration,
         background="#050510",
-        bloom_strength=2.0,
-        bloom_radius=0.6,
-        bloom_threshold=0.1,
-        fog_near=80,
-        fog_far=500,
-        dof_enabled=True,
-        dof_focus_distance=200,
-        dof_aperture=0.015,
+        bloom_strength=0.92,
+        bloom_radius=0.18,
+        bloom_threshold=0.92,
+        fog_near=170,
+        fog_far=1250,
+        dof_enabled=False,
     )
 
     return builder.build()

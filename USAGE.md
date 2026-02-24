@@ -1,24 +1,20 @@
-# USAGE: Build Any Visualization Quickly
+# USAGE: Implement a Custom Visualization
 
-This guide is a reusable workflow, not just one demo.
-Use it as a template for graph data, point clouds, or custom math structures.
+This guide shows how to implement a **cluster-reveal flythrough** from scratch using the existing toolkit.
 
-## Fast Start
+## End Product
 
-```bash
-# 1) Compile any scene script
-viz compile python/examples/your_scene.py -o your_scene.json
+After this you should have created a visualization where:
 
-# 2) Preview locally
-viz preview your_scene.json --port 3000
+- a graph is laid out in 3D
+- node clusters are revealed progressively
+- the camera flies through the scene
+- selected edges are highlighted
+- output is previewed interactively and rendered to video
 
-# 3) Render MP4
-viz render your_scene.json -o output/your_scene --format mp4
-```
+## 1. Create a Scene Script
 
-## General Template (Graph Data)
-
-Create `python/examples/your_scene.py`:
+Create `python/examples/my_cluster_flythrough.py`:
 
 ```python
 from __future__ import annotations
@@ -27,156 +23,113 @@ import networkx as nx
 
 from mathviz.layout.fruchterman import layout_fruchterman_reingold
 from mathviz.scene.builder import SceneBuilder
-from mathviz.scene.helpers import add_overview_then_zoom
 
 
 def build_scene():
-    # 1) Data
-    G = nx.barabasi_albert_graph(280, 3, seed=42)
+    # 1) Data: clustered graph
+    sizes = [60, 50, 40, 30]
+    probs = [
+        [0.25, 0.01, 0.01, 0.01],
+        [0.01, 0.28, 0.01, 0.01],
+        [0.01, 0.01, 0.30, 0.01],
+        [0.01, 0.01, 0.01, 0.32],
+    ]
+    G = nx.stochastic_block_model(sizes, probs, seed=42)
 
-    # 2) Optional grouping labels (for reveal + cluster layout)
-    communities = nx.community.greedy_modularity_communities(G)
-    for i, comm in enumerate(communities):
-        for node in comm:
-            G.nodes[node]["group"] = f"group_{i}"
+    labels = []
+    for i, size in enumerate(sizes):
+        labels.extend([i] * size)
+    for node in G.nodes():
+        G.nodes[node]["cluster"] = f"cluster_{labels[node]}"
 
-    # 3) Layout
-    positions = layout_fruchterman_reingold(
-        G,
-        dim=3,
-        seed=42,
-        iterations=45,
-        scale=110.0,
-    )
+    # 2) Layout
+    positions = layout_fruchterman_reingold(G, dim=3, seed=42, iterations=80, scale=120.0)
 
-    # 4) Color map
-    palette = ["#7dd3fc", "#86efac", "#fde68a", "#fca5a5", "#c4b5fd"]
-    color_map = {}
-    for node in G.nodes:
-        idx = int(G.nodes[node]["group"].split("_")[1]) % len(palette)
-        color_map[node] = palette[idx]
+    # 3) Colors by cluster
+    palette = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#f7dc6f"]
+    color_map = {node: palette[labels[node] % len(palette)] for node in G.nodes()}
 
-    # 5) Build nodes/edges
+    # 4) Build scene
     builder = SceneBuilder().from_graph(
         G,
         positions,
         color_map=color_map,
-        group_attr="group",
-        size=1.15,
-        cluster_layout=True,
-        cluster_shape="infinity",
-        cluster_spacing=360.0,
-        cluster_compactness=0.70,
+        group_attr="cluster",
+        size=1.3,
     )
 
-    # 6) Camera helper: full overview -> zoom -> sweep
-    # If using ndarray positions, pass a list/tuple iterable (positions is already iterable rows).
-    add_overview_then_zoom(
-        builder,
-        positions,
-        focus_target=(0.0, 0.0, 0.0),
-        duration=11.0,
-        overview_distance_scale=2.45,
-        focus_distance_scale=0.70,
-        sweep_distance_scale=1.02,
-        fit_padding=1.15,
+    # Camera path
+    builder.add_camera_keyframe(0.0, (0, 40, 220), (0, 0, 0), fov=68)
+    builder.add_camera_keyframe(4.0, (100, 25, 160), (0, 0, 0), fov=60)
+    builder.add_camera_keyframe(8.0, (-90, 20, 150), (0, 0, 0), fov=58)
+    builder.add_camera_keyframe(12.0, (0, 40, 220), (0, 0, 0), fov=68)
+
+    # Cluster reveal (single timeline step with stagger)
+    builder.add_cluster_reveal(
+        time=0.8,
+        groups=["cluster_0", "cluster_1", "cluster_2", "cluster_3"],
+        duration=1.0,
+        stagger=2.0,
     )
 
-    # 7) Timeline
-    builder.add_cluster_reveal(time=0.0, duration=0.9, stagger=0.4)
+    # Optional edge highlight
+    builder.add_highlight_edges(time=9.5, color="#ffffff", duration=1.0)
 
-    # 8) Render settings
     builder.set_render(
         width=1920,
         height=1080,
-        fps=24,
-        duration=11.0,
-        background="#060a14",
-        bloom_strength=1.25,
-        bloom_radius=0.24,
-        bloom_threshold=0.84,
-        fog_near=120,
-        fog_far=900,
-        dof_enabled=False,
+        fps=30,
+        duration=12.0,
+        background="#080814",
+        bloom_strength=1.4,
+        bloom_radius=0.45,
+        bloom_threshold=0.2,
+        fog_near=90,
+        fog_far=450,
+        dof_enabled=True,
+        dof_focus_distance=170,
     )
 
     return builder.build()
 ```
 
-## General Template (Point-Cloud / Non-Graph Data)
-
-Use this when your data is just points or trajectories:
-
-```python
-from mathviz.scene.builder import SceneBuilder
-
-
-def build_scene():
-    builder = SceneBuilder()
-
-    # Add points directly
-    for i, (x, y, z) in enumerate(my_points):
-        builder.add_node(
-            id=f"p_{i}",
-            position=(x, y, z),
-            color="#9ad8ff",
-            size=0.9,
-            glow=0.2,
-            group="points",
-        )
-
-    # Optional: connect sequential points / trajectories
-    for i in range(1, len(my_points)):
-        builder.add_edge(f"p_{i-1}", f"p_{i}", color="#c7d3ea", visible=True)
-
-    # Camera + render
-    builder.add_camera_keyframe(0.0, (0, 90, 260), (0, 0, 0), fov=60)
-    builder.add_camera_keyframe(8.0, (220, 80, 120), (0, 0, 0), fov=56)
-    builder.set_render(width=1920, height=1080, fps=24, duration=8.0)
-
-    return builder.build()
-```
-
-## Knobs You Will Reuse Most
-
-- Layout density: `scale`, `iterations`
-- Cluster packing: `cluster_spacing`, `cluster_compactness`, `cluster_shape`
-- Node readability: `size`, `glow`
-- Scene brightness: `bloom_strength`, `bloom_threshold`, edge opacity/color
-- Camera storytelling: `add_overview_then_zoom(...)`
-
-## Lightweight Example Gallery
-
-These are intentionally smaller/faster than Klotski but still visually strong:
+## 2. Compile Scene JSON
 
 ```bash
-# Prime numbers on a square spiral
-viz compile python/examples/prime_spiral.py -o prime_spiral_scene.json
-viz preview prime_spiral_scene.json --port 3000
-
-# Small-world graph colored by BFS shells
-viz compile python/examples/small_world_shells.py -o small_world_scene.json
-viz preview small_world_scene.json --port 3000
-
-# Procedural Lissajous ribbon trajectories
-viz compile python/examples/lissajous_ribbons.py -o lissajous_scene.json
-viz preview lissajous_scene.json --port 3000
+viz compile python/examples/my_cluster_flythrough.py -o my_scene.json
 ```
 
-## Useful Existing Heavy Demo
+## 3. Preview Interactively
 
 ```bash
-viz compile python/examples/klotski_paths.py -o klotski_scene.json
-viz preview klotski_scene.json --port 3000
+viz preview my_scene.json --port 3000
 ```
 
-## Iteration Loop
+Open `http://localhost:3000`.
 
-1. Edit scene script.
-2. `viz compile ...`
-3. `viz preview ...`
-4. Finalize with `viz render ... --format mp4`
+## 4. Render Frames or MP4
 
-## Playback Control
+```bash
+# PNG frames only
+viz render my_scene.json -o output --format frames
 
-In preview, press `Space` to pause/resume without on-screen controls.
+# MP4 (requires ffmpeg)
+viz render my_scene.json -o output --format mp4
+```
+
+## 5. Iteration Workflow
+
+Use this loop for fast iteration:
+
+1. Edit scene script (`build_scene`)
+2. Re-run `viz compile ...`
+3. Re-run `viz preview ...`
+4. Finalize with `viz render ...`
+
+## Useful Implementation Notes
+
+- Use `group_attr` in `from_graph(...)` so reveal/cluster timeline steps can target groups.
+- `cluster_reveal` reveals groups progressively with `stagger` and `duration`.
+- For large graphs, keep most edges subtle and use `highlight_edges` selectively.
+- Keep camera keyframes sparse (4-10 keyframes), let interpolation smooth motion.
+- Layout should be computed in Python first; renderer should focus on playback/capture.

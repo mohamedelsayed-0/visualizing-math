@@ -38,19 +38,18 @@ const fragmentShader = /* glsl */ `
     vec2 centered = vUv * 2.0 - 1.0;
     float dist = length(centered);
     if (dist > 1.0) discard;
-    float core = smoothstep(0.66, 0.0, dist);
-    float rimInner = smoothstep(0.96, 0.80, dist);
-    float rimOuter = 1.0 - smoothstep(0.995, 0.90, dist);
-    float rim = rimInner * rimOuter;
-    float halo = exp(-dist * dist * 4.6) * 0.78;
+    float circleMask = 1.0 - smoothstep(0.90, 1.00, dist);
+    float core = 1.0 - smoothstep(0.0, 0.62, dist);
+    float halo = exp(-dist * dist * 5.0) * 0.72;
     float pulse = max(1.0, vReveal);
     float glowBoost = max(0.0, vGlow);
-    float baseIntensity = core * 0.94 + rim * 0.30;
-    float glowIntensity = halo * glowBoost * 1.32 * mix(1.0, pulse, 0.78);
-    float intensity = (baseIntensity + glowIntensity) * 0.88;
+    float baseIntensity = core * 0.96 + halo * 0.08;
+    float glowIntensity = halo * glowBoost * 1.18 * mix(1.0, pulse, 0.72);
+    float intensity = (baseIntensity + glowIntensity) * 0.86 * circleMask;
     float alpha =
-      (core * 0.78 + rim * 0.40 + halo * (0.08 + glowBoost * 0.54) * mix(1.0, pulse, 0.34))
-      * min(vReveal, 1.18);
+      (core * 0.82 + halo * (0.10 + glowBoost * 0.48) * mix(1.0, pulse, 0.30))
+      * min(vReveal, 1.16)
+      * circleMask;
     gl_FragColor = vec4(vColor * intensity, alpha);
   }
 `;

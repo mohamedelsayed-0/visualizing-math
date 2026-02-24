@@ -1,7 +1,6 @@
-"""Lightweight Demo: Prime Spiral (Ulam-style)
+"""Example: Prime Spiral
 
-Visualizes integers on a square spiral and highlights prime numbers.
-This example is lightweight but still visually rich.
+Visualizes integers on a true polar spiral and highlights prime numbers.
 
 Usage:
     viz compile python/examples/prime_spiral.py -o prime_spiral_scene.json
@@ -34,31 +33,6 @@ def is_prime(n: int) -> bool:
     return True
 
 
-def spiral_coords(count: int) -> list[tuple[int, int]]:
-    if count <= 0:
-        return []
-
-    coords = [(0, 0)]
-    x, y = 0, 0
-    step_len = 1
-    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
-    direction_idx = 0
-
-    while len(coords) < count:
-        for _ in range(2):
-            dx, dy = directions[direction_idx % 4]
-            for _ in range(step_len):
-                if len(coords) >= count:
-                    break
-                x += dx
-                y += dy
-                coords.append((x, y))
-            direction_idx += 1
-        step_len += 1
-
-    return coords
-
-
 def centroid(points: Iterable[Vec3]) -> Vec3:
     pts = list(points)
     if not pts:
@@ -70,35 +44,40 @@ def centroid(points: Iterable[Vec3]) -> Vec3:
     return (sx * inv, sy * inv, sz * inv)
 
 
-def build_scene(*, count: int = 1800, spacing: float = 6.0):
-    coords = spiral_coords(count)
+def spiral_point(index: int, theta_step: float, radial_pitch: float) -> Vec3:
+    theta = index * theta_step
+    radius = 8.0 + radial_pitch * theta
+    x = math.cos(theta) * radius
+    y = math.sin(theta) * radius
+    z = (
+        math.sin(theta * 0.75) * 13.0
+        + math.cos(theta * 0.31) * 7.0
+        + (index * 0.008)
+    )
+    return (x, y, z)
+
+
+def build_scene(*, count: int = 1650, theta_step: float = 0.31, radial_pitch: float = 0.58):
     builder = SceneBuilder()
 
     positions: list[Vec3] = []
     prime_positions: list[Vec3] = []
 
-    for i, (sx, sy) in enumerate(coords, start=1):
-        x = sx * spacing
-        y = sy * spacing
-        # Small z undulation adds depth while keeping spiral readable.
-        z = (
-            math.sin(i * 0.052) * spacing * 0.8
-            + math.cos(i * 0.017) * spacing * 0.55
-        )
-        pos = (x, y, z)
+    for i in range(1, count + 1):
+        pos = spiral_point(i, theta_step, radial_pitch)
         positions.append(pos)
 
         prime = is_prime(i)
         if prime:
-            color = "#30ff8a"
-            size = 1.95
-            glow = 3.3
+            color = "#66ffad"
+            size = 1.44
+            glow = 2.25
             group = "prime"
             prime_positions.append(pos)
         else:
-            color = "#cbd7f0"
-            size = 0.78
-            glow = 0.12
+            color = "#2a3650"
+            size = 0.62
+            glow = 0.0
             group = "composite"
 
         node_id = str(i)
@@ -112,31 +91,32 @@ def build_scene(*, count: int = 1800, spacing: float = 6.0):
             reveal_order=1 if prime else 0,
         )
 
-        if i > 1 and i % 3 == 0:
+        if i > 1:
             builder.add_edge(
                 source=str(i - 1),
                 target=node_id,
-                color="#2c3954",
+                color="#4d648e",
                 visible=True,
             )
 
-    focus_target = centroid(prime_positions) if prime_positions else centroid(positions)
+    center = centroid(positions)
+    focus_target = prime_positions[len(prime_positions) // 2] if prime_positions else center
     add_overview_then_zoom(
         builder,
         positions,
         focus_target=focus_target,
-        global_target=centroid(positions),
+        global_target=center,
         duration=11.0,
-        overview_distance_scale=2.4,
-        focus_distance_scale=0.55,
-        sweep_distance_scale=0.95,
-        fit_padding=1.18,
-        overview_hold_ratio=0.22,
-        focus_ratio=0.55,
-        sweep_ratio=0.82,
-        overview_fov=62.0,
-        focus_fov=38.0,
-        sweep_fov=48.0,
+        overview_distance_scale=2.55,
+        focus_distance_scale=0.62,
+        sweep_distance_scale=0.98,
+        fit_padding=1.16,
+        overview_hold_ratio=0.20,
+        focus_ratio=0.57,
+        sweep_ratio=0.84,
+        overview_fov=60.0,
+        focus_fov=36.0,
+        sweep_fov=46.0,
         end_fov=56.0,
     )
 
@@ -153,9 +133,9 @@ def build_scene(*, count: int = 1800, spacing: float = 6.0):
         fps=24,
         duration=11.0,
         background="#060912",
-        bloom_strength=1.35,
-        bloom_radius=0.26,
-        bloom_threshold=0.86,
+        bloom_strength=1.02,
+        bloom_radius=0.18,
+        bloom_threshold=0.95,
         fog_near=180,
         fog_far=1800,
         dof_enabled=False,

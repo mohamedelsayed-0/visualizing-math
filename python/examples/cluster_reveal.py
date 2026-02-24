@@ -14,6 +14,7 @@ import networkx as nx
 
 from mathviz.scene.builder import SceneBuilder
 from mathviz.layout.fruchterman import layout_fruchterman_reingold
+from mathviz.scene.helpers import add_overview_then_zoom
 
 
 def build_scene(
@@ -50,54 +51,79 @@ def build_scene(
         iterations=layout_iterations,
     )
 
-    # Color palette per cluster
-    palette = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#f7dc6f", "#bb8fce"]
-    color_map = {
-        node: palette[block_labels[node]] for node in G.nodes()
-    }
+    palette = ["#ff7f7f", "#66d7ff", "#7dffac", "#ffd36c", "#c9a7ff"]
 
-    # Build scene
     builder = SceneBuilder()
-    builder.from_graph(
-        G,
+    node_list = list(G.nodes())
+    max_degree = max(G.degree[node] for node in node_list)
+
+    for idx, node in enumerate(node_list):
+        deg_norm = G.degree[node] / max(1, max_degree)
+        cluster_id = block_labels[node]
+        builder.add_node(
+            id=str(node),
+            position=(
+                float(positions[idx, 0]),
+                float(positions[idx, 1]),
+                float(positions[idx, 2]),
+            ),
+            color=palette[cluster_id],
+            size=1.02 + (deg_norm ** 0.60) * 0.95,
+            glow=0.22 + (deg_norm ** 0.85) * 0.78,
+            group=f"block_{cluster_id}",
+            reveal_order=cluster_id,
+        )
+
+    for u, v in G.edges:
+        builder.add_edge(str(u), str(v), color="#2b3650", visible=True)
+
+    add_overview_then_zoom(
+        builder,
         positions,
-        color_map=color_map,
-        group_attr="cluster",
-        size=1.5,
+        focus_target=(0.0, 0.0, 0.0),
+        global_target=(0.0, 0.0, 0.0),
+        duration=13.0,
+        overview_distance_scale=2.9,
+        focus_distance_scale=0.74,
+        sweep_distance_scale=1.06,
+        fit_padding=1.24,
+        overview_hold_ratio=0.08,
+        focus_ratio=0.36,
+        sweep_ratio=0.78,
+        overview_fov=68.0,
+        focus_fov=50.0,
+        sweep_fov=58.0,
+        end_fov=66.0,
     )
-
-    # Start with everything hidden
-    # (The renderer defaults to visible; timeline reveal_group sets to 1.0)
-
-    # Camera: static elevated view, slow orbit
-    builder.add_camera_keyframe(0.0, (0, 80, 200), (0, 0, 0), fov=65)
-    builder.add_camera_keyframe(5.0, (100, 60, 180), (0, 0, 0), fov=60)
-    builder.add_camera_keyframe(10.0, (-50, 80, 200), (0, 0, 0), fov=65)
-    builder.add_camera_keyframe(15.0, (0, 80, 200), (0, 0, 0), fov=65)
 
     # Reveal clusters one by one with a single cluster_reveal step.
     builder.add_cluster_reveal(
-        time=1.0,
+        time=0.45,
         groups=[f"block_{i}" for i in range(len(sizes))],
-        duration=1.0,
-        stagger=2.5,
+        duration=0.85,
+        stagger=1.85,
     )
 
-    # Highlight inter-cluster edges at the end
-    builder.add_highlight_edges(time=14.0, color="#ffffff", duration=1.0)
+    hub = max(G.nodes(), key=lambda n: G.degree[n])
+    builder.add_highlight_edges(
+        source=str(hub),
+        time=7.2,
+        color="#ffaa00",
+        duration=2.0,
+    )
 
     builder.set_render(
         width=1920,
         height=1080,
         fps=30,
-        duration=15.0,
+        duration=13.0,
         background="#0a0a1a",
-        bloom_strength=1.5,
-        bloom_radius=0.4,
-        fog_near=80,
-        fog_far=400,
-        dof_enabled=True,
-        dof_focus_distance=180,
+        bloom_strength=0.78,
+        bloom_radius=0.14,
+        bloom_threshold=0.95,
+        fog_near=140,
+        fog_far=900,
+        dof_enabled=False,
     )
 
     return builder.build()
